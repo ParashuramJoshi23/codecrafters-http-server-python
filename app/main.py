@@ -14,7 +14,24 @@ def main():
 
     while True:
         client_socket, addr = server_socket.accept()
+        request = client_socket.recv(1024)
+        start_line, header1, header2 = request.partition(b"\r\n")
+        print(f"Received: {start_line} header 1: {header1} header 2: {header2}")
         print(f"Connection from {addr}")
+
+        start_line_data = start_line.split(b" ")
+        method = start_line_data[0]
+        url = start_line_data[1]
+        proto = start_line_data[2]
+        print(f"Method: {method} URL: {url} Protocol: {proto}")
+
+        url_data = url.split(b"/")
+        print(f"URL data: {url_data}")
+        if len(url_data) > 2 or len(url_data) == 1:
+            client_socket.sendall(b"""HTTP/1.1 404 NOT FOUND\r\n\r\n""")
+            client_socket.close()
+            continue
+        
         client_socket.sendall(b"""HTTP/1.1 200 OK\r\n\r\n""")
         client_socket.close()
 

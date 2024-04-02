@@ -21,19 +21,27 @@ def main():
 
         start_line_data = start_line.split(b" ")
         method = start_line_data[0]
-        url = start_line_data[1]
+        url = start_line_data[1].decode("utf-8")
         proto = start_line_data[2]
         print(f"Method: {method} URL: {url} Protocol: {proto}")
 
-        url_data = url.split(b"/")
-        print(f"URL data: {url_data}")
-        if len(url_data) > 2 or len(url_data) == 1:
+        if url == "/":
+            content = ""
+            print(f"Content: {content}")
+            client_socket.sendall(b"""HTTP/1.1 200 OK\r\n\r\n""")
+            client_socket.close()
+        elif "echo" not in url:
             client_socket.sendall(b"""HTTP/1.1 404 NOT FOUND\r\n\r\n""")
             client_socket.close()
-            continue
-        
-        client_socket.sendall(b"""HTTP/1.1 200 OK\r\n\r\n""")
-        client_socket.close()
+        else:
+            url_data = url.split("/echo/")
+            content = url_data[-1]
+            print(f"URL Data: {url_data}")
+            print(f"Content: {content}")
+            result = f"""HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(content)}\r\n\r\n{content}"""
+            print(f"Result: {result}")
+            client_socket.sendall(result.encode("utf-8"))
+            client_socket.close()
 
 if __name__ == "__main__":
     main()

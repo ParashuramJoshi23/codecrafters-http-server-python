@@ -25,6 +25,7 @@ def main():
         proto = start_line_data[2]
         print(f"Method: {method} URL: {url} Protocol: {proto}")
 
+
         if url == "/":
             content = ""
             print(f"Content: {content}")

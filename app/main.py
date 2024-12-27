@@ -77,7 +77,19 @@ def main(*args, **kwargs):
                     
                     print(f"Multiple compressions: {multiple_compressions}")
                     if "gzip" in multiple_compressions:
-                        respond_text = f"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\n\r\n{message}\r\n"
+                        import  gzip
+                        compressed_data = gzip.compress(message.encode("utf-8"))
+                        header = (
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Encoding: gzip\r\n"
+                            "Content-Type: text/plain\r\n"
+                            f"Content-Length: {len(compressed_data)}\r\n"
+                            "\r\n"
+                        )
+
+                        respond_text = header.encode('utf-8') + compressed_data + b"\r\n"
+                        client_socket.sendall(respond_text)
+                        return
                     else:
                         respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{message}\r\n"
                     

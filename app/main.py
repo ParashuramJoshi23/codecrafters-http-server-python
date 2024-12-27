@@ -1,12 +1,19 @@
 import socket  # noqa: F401
-import threading
 from concurrent.futures import ThreadPoolExecutor
+import argparse
 
-def main():
+def main(*args, **kwargs):
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
-    def handle_client_connection(client_socket):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--directory', type=str, help='Optional directory argument', required=False)
+    args = parser.parse_args()
+
+    dir_path = args.directory
+    print(f"Directory: {dir_path}")
+
+    def handle_client_connection(client_socket, dir_path):
         print("Handling client connection")
         try:
             with client_socket:
@@ -20,8 +27,6 @@ def main():
                 print(f"Request: {url_parts}")
                 path = url_parts[1] if len(url_parts) > 1 else None
 
-                print(f"Request: {request_lines}")
-
                 if not path:
                     client_socket.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
 
@@ -29,6 +34,19 @@ def main():
                 if path == "/":
                     print("Root path")
                     client_socket.sendall(b"HTTP/1.1 200 OK\r\n\r\n")
+                
+                elif path.lower().startswith("/file"):
+                    file_name = path[7:]
+                    print(f"File path: {dir_path} {file_name}")
+                    import os
+                    file_path = os.path.join(dir_path, file_name)
+                    try:
+                        with open(file_path, "rb") as file:
+                            file_content = file.read()
+                            respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(file_content)}\r\n\r\n{file_content.decode('utf-8')}\r\n\r\n"
+                            client_socket.sendall(respond_text.encode("utf-8"))
+                    except FileNotFoundError:
+                        client_socket.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
                 
                 elif path.lower().startswith("/echo"):
                     message = path[6:]
@@ -65,7 +83,7 @@ def main():
                 print("Server started")
                 client_socket, _ = server_socket.accept()
                 print("Client connected")
-                executor.submit(handle_client_connection, client_socket)
+                executor.submit(handle_client_connection, client_socket, dir_path)
 
 
             

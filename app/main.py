@@ -70,12 +70,13 @@ def main(*args, **kwargs):
                     message = path[6:]
                     respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(message)}\r\n\r\n{message}\r\n"
 
-                    compression = req_line.split("Accept-Encoding: ")[1] if header else None
-                    if not compression:
+                    multiple_compressions = header.split("Accept-Encoding: ")[1] if header else None
+                    if not multiple_compressions:
                         client_socket.sendall(respond_text.encode("utf-8"))
                         return
                     
-                    if compression == "gzip":
+                    print(f"Multiple compressions: {multiple_compressions}")
+                    if "gzip" in multiple_compressions:
                         respond_text = f"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\n\r\n{message}\r\n"
                     else:
                         respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{message}\r\n"

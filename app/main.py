@@ -1,6 +1,7 @@
 import socket  # noqa: F401
 from concurrent.futures import ThreadPoolExecutor
 import argparse
+import os
 
 def main(*args, **kwargs):
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -18,13 +19,17 @@ def main(*args, **kwargs):
         try:
             with client_socket:
                 request = client_socket.recv(4096)
-                print(f"Request: {request}")
+
+                parts = request.split(b"\r\n\r\n")
+                file_content = parts[1] if len(parts) > 1 else None
 
                 request_str = request.decode("utf-8")
                 request_lines = request_str.split("\r\n")
                 url_parts = request_lines[0].split(" ")
 
                 print(f"Request: {url_parts}")
+                print(f"File content: {file_content}")
+                method = url_parts[0]
                 path = url_parts[1] if len(url_parts) > 1 else None
 
                 if not path:
@@ -38,15 +43,22 @@ def main(*args, **kwargs):
                 elif path.lower().startswith("/file"):
                     file_name = path[7:]
                     print(f"File path: {dir_path} {file_name}")
-                    import os
+                    print(f"Method: {method}, File content: {file_content}")
                     file_path = os.path.join(dir_path, file_name)
-                    try:
-                        with open(file_path, "rb") as file:
-                            file_content = file.read()
-                            respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(file_content)}\r\n\r\n{file_content.decode('utf-8')}\r\n\r\n"
-                            client_socket.sendall(respond_text.encode("utf-8"))
-                    except FileNotFoundError:
-                        client_socket.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
+                    if method.lower() == "post" and file_content:
+                        # create file
+                        with open(file_path, "wb") as file:
+                            file.write(file_content)
+                        client_socket.sendall(b"HTTP/1.1 201 Created\r\n\r\n")
+
+                    elif method.lower() == "get":
+                        try:
+                            with open(file_path, "rb") as file:
+                                file_content = file.read()
+                                respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(file_content)}\r\n\r\n{file_content.decode('utf-8')}\r\n\r\n"
+                                client_socket.sendall(respond_text.encode("utf-8"))
+                        except FileNotFoundError:
+                            client_socket.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
                 
                 elif path.lower().startswith("/echo"):
                     message = path[6:]

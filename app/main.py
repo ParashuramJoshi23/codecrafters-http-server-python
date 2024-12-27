@@ -14,12 +14,22 @@ def main():
         url_parts = request_lines[0].split(" ")
         # print(f"Request: {url_parts}")
         path = url_parts[1] if len(url_parts) > 1 else None
-        
-        if path and path != "/":
+
+        print(f"Path: {path}")
+        if not path:
             client_socket.send(b"HTTP/1.1 404 Not Found\r\n\r\n")
 
-        client_socket.send(b"HTTP/1.1 200 OK\r\n\r\n")
-
+        if path.startswith("/echo/"):
+            message = path[6:]
+            print(f"Echoing: {message}")
+            resp_text = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(message)}\r\n\r\n{message}\r\n"
+            client_socket.send(resp_text.encode("utf-8"))
+        elif path == "/":
+            print("Root path")
+            client_socket.send(b"HTTP/1.1 200 OK\r\n\r\n")
+        else:
+            client_socket.send(b"HTTP/1.1 404 Not Found\r\n\r\n")
+            
 
 if __name__ == "__main__":
     main()

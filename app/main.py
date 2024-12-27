@@ -61,9 +61,27 @@ def main(*args, **kwargs):
                             client_socket.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
                 
                 elif path.lower().startswith("/echo"):
+                    header = None
+                    for req_line in request_lines:
+                        if req_line and  req_line.startswith("Accept-Encoding:"):
+                            header = req_line
+                            break
+                    
                     message = path[6:]
                     respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(message)}\r\n\r\n{message}\r\n"
+
+                    compression = req_line.split("Accept-Encoding: ")[1] if header else None
+                    if not compression:
+                        client_socket.sendall(respond_text.encode("utf-8"))
+                        return
+                    
+                    if compression == "gzip":
+                        respond_text = f"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Type: text/plain\r\n\r\n{message}\r\n"
+                    else:
+                        respond_text = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n{message}\r\n"
+                    
                     client_socket.sendall(respond_text.encode("utf-8"))
+                    return
 
                 elif path.lower().startswith("/user-agent"):
                     header = None
